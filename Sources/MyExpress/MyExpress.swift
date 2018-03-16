@@ -17,11 +17,9 @@ class MyExpress {
     let loopGroup = MultiThreadedEventLoopGroup(numThreads: System.coreCount)
     
     func listen(_ port: Int) {
-        let reuseAddrOpt = ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR)
-        
         let bootstrap = ServerBootstrap(group: loopGroup)
             .serverChannelOption(ChannelOptions.backlog, value: 256)
-            .serverChannelOption(reuseAddrOpt, value: 1)
+            .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             
             .childChannelInitializer { channel in
                 channel.pipeline.addHTTPServerHandlers().then {
@@ -30,7 +28,9 @@ class MyExpress {
             }
         
             .childChannelOption(ChannelOptions.socket(IPPROTO_TCP, TCP_NODELAY), value: 1)
+            .childChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .childChannelOption(ChannelOptions.maxMessagesPerRead, value: 1)
+            .childChannelOption(ChannelOptions.allowRemoteHalfClosure, value: true)
         
         do {
             let serverChannel = try bootstrap.bind(host: "localhost", port: port)
