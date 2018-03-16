@@ -35,33 +35,7 @@ class Router: RouterProtocol {
     func handle(request: IncomingMessage,
                 response: ServerResponse,
                 next upperNext: @escaping Next) {
-        final class State {
-            var stack: ArraySlice<Middleware>
-            let request: IncomingMessage
-            let response: ServerResponse
-            var next: Next?
-            
-            init(_ stack: ArraySlice<Middleware>,
-                _ request: IncomingMessage,
-                _ response: ServerResponse,
-                _ next: @escaping Next) {
-                self.stack = stack
-                self.request = request
-                self.response = response
-                self.next = next
-            }
-            
-            func step(_ args: Any...) {
-                if let middleware = stack.popFirst() {
-                    middleware(request, response, self.step)
-                } else {
-                    next?()
-                    next = nil
-                }
-            }
-        }
-        
-        let state = State(middleware[middleware.indices],
+        let state = RouterState(middleware[middleware.indices],
                           request,
                           response,
                           upperNext)
@@ -87,7 +61,7 @@ extension Router {
 extension Router {
     
     func use(router: Router) {
-        router.middleware.map {
+        _ = router.middleware.map {
             self.middleware.append($0)
         }
     }
