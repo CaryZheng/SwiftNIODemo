@@ -2,73 +2,44 @@
 //  Router.swift
 //  MyExpress
 //
-//  Created by CaryZheng on 2018/3/15.
+//  Created by CaryZheng on 2018/3/19.
 //
 
 import Foundation
-import NIO
 
-protocol RouterProtocol {
-    var middleware: [Middleware] { get set }
-    func use(_ middleware: Middleware...)
+public protocol Responder {
+    func respond() -> String
 }
 
-class Router: RouterProtocol {
+public struct RouterResponder<T>: Responder where T: Encodable {
     
-    private var part = ""
-    var middleware = [Middleware]()
+    public typealias Handler = () -> T
     
-    init() {
-        middleware.append(testMiddle)
+    public let handler: Handler
+    
+    public init(handler: @escaping Handler) {
+        self.handler = handler
     }
     
-    func testMiddle(req: IncomingMessage, res: ServerResponse, next: Next) {
-        print("testMiddle")
+    public func respond() -> String {
+        do {
+            let data = try JSONEncoder().encode(handler())
+            return String(data: data, encoding: .utf8)!
+        } catch {
+            print("RouterResponder respond error")
+        }
         
-        res.send("Test from Cary")
-    }
-    
-    func use(_ middleware: Middleware...) {
-        self.middleware.append(contentsOf: middleware)
-    }
-    
-    func handle(request: IncomingMessage,
-                response: ServerResponse,
-                next upperNext: @escaping Next) {
-        let state = RouterState(middleware[middleware.indices],
-                          request,
-                          response,
-                          upperNext)
-        state.step()
+        return ""
     }
     
 }
 
-extension Router {
+public class Router {
     
-    func get(_ path: String = "", middleware: @escaping Middleware) {
-        use { req, res, next in
-            guard req.header.method == .GET,
-                req.header.uri.hasPrefix(self.part+path)
-            else { return next() }
-            
-            middleware(req, res, next)
-        }
-    }
+    var routingTable = [String: Responder]()
     
-}
-
-extension Router {
-    
-    func use(router: Router) {
-        _ = router.middleware.map {
-            self.middleware.append($0)
-        }
-    }
-    
-    func use(_ part: String, router: Router) {
-        router.part = part
-        use(router: router)
+    func get<T: Encodable>(_ route: String, handler: @escaping () -> T) {
+        routingTable[route] = RouterResponder<T>(handler: handler)
     }
     
 }
