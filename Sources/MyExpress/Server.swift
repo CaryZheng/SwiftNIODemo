@@ -37,7 +37,7 @@ public class Server {
             .serverChannelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             
             .childChannelInitializer { channel in
-                channel.pipeline.addHTTPServerHandlers().then {
+                channel.pipeline.configureHTTPServerPipeline().then {
                     channel.pipeline.add(handler: Handler(fileIO: self.fileIO, router: self.router))
                 }
             }
